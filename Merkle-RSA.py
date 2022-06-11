@@ -44,11 +44,11 @@ def buildProof(root,str):
         if (root.key == str):
             return proof
         if(isValExists(root.left, str)):
-            proof.insert(0, root.right.key)
+            proof.insert(0,  '1' + root.right.key)
             
             root = root.left
         else:
-            proof.insert(0, root.left.key)
+            proof.insert(0, '0' + root.left.key)
             root = root.right
     return None
 
@@ -96,6 +96,25 @@ def calculateHashRoot(leaf_list):
     return calculateHashRoot(hashed_list)
     
 
+def calculateHashRootFromProof(leaf_list):
+    if(len(leaf_list) == 0):
+        return ""
+    if (len(leaf_list) == 1):
+        return leaf_list[0]
+    hashed_list = []
+    for i in range(0,len(leaf_list) - 1, 2):
+        new_leaf = ''
+        if(leaf_list[i + 1][0] == '1'):
+            new_leaf = leaf_list[i] + leaf_list[i + 1][1:]
+        else:
+            new_leaf = leaf_list[i + 1][1:] + leaf_list[i]
+        hash_maker = hashlib.sha256()
+        hash_maker.update(new_leaf.encode('ascii'))
+        hashed_list.append(hash_maker.hexdigest())
+    if(len(leaf_list) % 2 != 0):
+        hashed_list.append(leaf_list[-1])
+    return calculateHashRoot(hashed_list)
+
 
 
 def proofOfInclusionToLeaf(leaf_num):
@@ -118,8 +137,8 @@ def proofOfInclusion(x):
     hashed_list = proof[1:]
     hashed_list.insert(0, hashed_info)
     print("correct: " + correct)
-    print("calculated: " + calculateHashRoot(hashed_list))
-    if(calculateHashRoot(hashed_list) == correct):
+    print("calculated: " + calculateHashRootFromProof(hashed_list))
+    if(calculateHashRootFromProof(hashed_list) == correct):
         return True
     return False
 
