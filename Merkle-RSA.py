@@ -1,3 +1,5 @@
+# Avraham Sikirov, 318731478, Kehat Sudri, 318409745
+
 import hashlib
 import base64
 
@@ -5,6 +7,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization
+from M2Crypto import RSA, BIO
 
 
 
@@ -151,13 +155,23 @@ def CreateKeys():
         backend=default_backend()
     )
     public_key=private_key.public_key()
-    keys.insert(0,private_key)
-    keys.insert(1,public_key)
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    public_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    keys.append(private_pem.decode())
+    keys.append(public_pem.decode())
     return
 
 def createSignRoot():
-    sign_key = keys[0]
+    sign_key_string = keys[0]
     root = calculateHashRoot(leaf_list)
+    sign_key = M2Crypto.RSA.load_pub_key(sign_key_string)
     signature = sign_key.sign(
         root,
         padding.PSS(
@@ -231,7 +245,7 @@ while(True):
         print(proofOfInclusion(x[1]))
     if(pick == 5):
         CreateKeys()
-        print(keys)
+        print(keys[0] + '\n' + keys[1])
     if(pick == 6):
         createSignRoot()
     if(pick == 7):
