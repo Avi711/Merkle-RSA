@@ -8,9 +8,6 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
-from M2Crypto import RSA, BIO
-
-
 
 def buildTree(leaf_list):
     node_list = []
@@ -117,7 +114,7 @@ def calculateHashRootFromProof(leaf_list):
         hashed_list.append(hash_maker.hexdigest())
     if(len(leaf_list) % 2 != 0):
         hashed_list.append(leaf_list[-1])
-    return calculateHashRoot(hashed_list)
+    return calculateHashRootFromProof(hashed_list)
 
 
 
@@ -130,16 +127,13 @@ def proofOfInclusionToLeaf(leaf_num):
 
 def proofOfInclusion(x):
     x = x.split()
-    info = x[0]
+    leaf = x[0]
     hash_maker = hashlib.sha256()
-    hash_maker.update(info.encode('ascii'))
-    hashed_info = hash_maker.hexdigest()
-    print(leaf_list)
-    index_info = leaf_list.index(hashed_info)
-    proof = proofOfInclusionToLeaf(index_info).split()
-    correct = proof[0]
-    hashed_list = proof[1:]
-    hashed_list.insert(0, hashed_info)
+    hash_maker.update(leaf.encode('ascii'))
+    hashed_leaf = hash_maker.hexdigest()
+    correct = x[1]
+    hashed_list = x[2:]
+    hashed_list.insert(0, hashed_leaf)
     print("correct: " + correct)
     print("calculated: " + calculateHashRootFromProof(hashed_list))
     if(calculateHashRootFromProof(hashed_list) == correct):
@@ -148,7 +142,7 @@ def proofOfInclusion(x):
 
 
 def CreateKeys():
-    
+    keys = []
     private_key =rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -166,36 +160,49 @@ def CreateKeys():
     )
     keys.append(private_pem.decode())
     keys.append(public_pem.decode())
-    return
+    return keys
 
-def createSignRoot():
-    sign_key_string = keys[0]
+def createSignRoot(sign_key_string):
     root = calculateHashRoot(leaf_list)
-    sign_key = M2Crypto.RSA.load_pub_key(sign_key_string)
+    sign_key = serialization.load_pem_private_key(
+        sign_key_string.encode('ascii'),
+        password=None,
+        backend=default_backend()
+    )
     signature = sign_key.sign(
-        root,
+        root.encode('ascii'),
         padding.PSS(
             mgf=padding.MGF1(hashes.SHA256()),
             salt_length=padding.PSS.MAX_LENGTH
         ),
         hashes.SHA256()
     )
-    
+    return base64.encodebytes(signature).decode()
 
 
-def VerifySign():
-    verify_key = input()
-    sign = input()
-    verify_text = input()
-    verify_key.verify(
-    sign,
-    verify_text,
-    padding.PSS(
-        mgf=padding.MGF1(hashes.SHA256()),
-        salt_length=padding.PSS.MAX_LENGTH
-    ),
-    hashes.SHA256()
+def VerifySign(verify_key):
+    x= input().split()
+    sign = x[0]
+    verify_text = x[1]
+
+
+    pk = serialization.load_pem_public_key(
+        verify_key.encode('ascii'),
     )
+
+
+    res = pk.verify(
+        #sign.encode('ascii'),
+        #verify_text.encode('ascii'),
+        base64.decodebytes(sign.encode()),
+        verify_text.encode('ascii'),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return res
 
 class Merkle:
     def __init__(self,key):
@@ -222,34 +229,36 @@ keys=[]
 
 while(True):
     x = input()
-    x = x.split()
     pick = x[0]
 
     try:
         pick = int(pick)
     except:
-        print("Please enter a valid number 1-7")
+        print('')
         continue
-    if(pick < 0 or pick > 8):
-        print("Please enter a valid number 1-7")
+    if(pick < 0 or pick > 7):
+        print('')
         continue
     if(pick == 0):
         exit()
     if(pick == 1):
-        addNode(x[1])
+        addNode(x[2:])
     if(pick == 2):
         print(calculateHashRoot(leaf_list))
     if(pick == 3):
-        print(proofOfInclusionToLeaf(int(x[1])))
+        print(proofOfInclusionToLeaf(int(x[2:])))
     if(pick == 4):
-        print(proofOfInclusion(x[1]))
+        print(proofOfInclusion(x[2::]))
     if(pick == 5):
-        CreateKeys()
+        keys = CreateKeys()
         print(keys[0] + '\n' + keys[1])
     if(pick == 6):
-        createSignRoot()
+        print(createSignRoot(keys[0]))
     if(pick == 7):
-        VerifySign()
+        #try:
+            print(VerifySign(keys[1]))
+        #except:
+        #    print('')
     if(pick == 8):
         print(leaf_list[-1:])
     
