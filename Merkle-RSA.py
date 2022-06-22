@@ -1,5 +1,6 @@
 # Avraham Sikirov, 318731478, Kehat Sudri, 318409745
 
+from cgitb import text
 import hashlib
 import base64
 
@@ -8,6 +9,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
+from numpy import inf
 
 def buildTree(leaf_list):
     node_list = []
@@ -163,9 +165,18 @@ def CreateKeys():
     return keys
 
 def createSignRoot(sign_key_string):
+
+    pk_lines = []
+    info = sign_key_string
+    pk_lines.append(info)
+    while info:
+        info = input()
+        pk_lines.append(info)
+    pk = '\n'.join(pk_lines)
+    
     root = calculateHashRoot(leaf_list)
     sign_key = serialization.load_pem_private_key(
-        sign_key_string.encode('ascii'),
+        pk.encode('ascii'),
         password=None,
         backend=default_backend()
     )
@@ -177,32 +188,50 @@ def createSignRoot(sign_key_string):
         ),
         hashes.SHA256()
     )
+
     return base64.encodebytes(signature).decode()
 
 
-def VerifySign(verify_key):
+def VerifySign(verify_key_first_line):
+
+    pk_lines = []
+    info = verify_key_first_line
+    pk_lines.append(info)
+    while info:
+        info = input()
+        pk_lines.append(info)
+    pk_b = '\n'.join(pk_lines)
+
+
+
     x= input().split()
     sign = x[0]
     verify_text = x[1]
 
 
     pk = serialization.load_pem_public_key(
-        verify_key.encode('ascii'),
+        pk_b.encode('ascii'),
+        backend=default_backend()
     )
 
+    try:
 
-    res = pk.verify(
-        #sign.encode('ascii'),
-        #verify_text.encode('ascii'),
-        base64.decodebytes(sign.encode()),
-        verify_text.encode('ascii'),
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
-    )
-    return res
+        res = pk.verify(
+            #sign.encode('ascii'),
+            #verify_text.encode('ascii'),
+            #base64.decodebytes(sign.encode()),
+            #verify_text.encode('ascii'),
+            base64.decodebytes(sign.encode()),
+            verify_text.encode(),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+    except:
+        return False
+    return True
 
 class Merkle:
     def __init__(self,key):
@@ -236,29 +265,42 @@ while(True):
     except:
         print('')
         continue
-    if(pick < 0 or pick > 7):
+    if(pick < 1 or pick > 7):
         print('')
         continue
-    if(pick == 0):
-        exit()
     if(pick == 1):
-        addNode(x[2:])
+        try:
+            addNode(x[2:])
+        except:
+            print('')
     if(pick == 2):
-        print(calculateHashRoot(leaf_list))
+        try:
+            print(calculateHashRoot(leaf_list))
+        except:
+            print('')
     if(pick == 3):
-        print(proofOfInclusionToLeaf(int(x[2:])))
+        try:
+            print(proofOfInclusionToLeaf(int(x[2:])))
+        except:
+            print('')
     if(pick == 4):
-        print(proofOfInclusion(x[2::]))
+        try:
+            print(proofOfInclusion(x[2::]))
+        except:
+            print('')
     if(pick == 5):
-        keys = CreateKeys()
-        print(keys[0] + '\n' + keys[1])
+        try:
+            keys = CreateKeys()
+            print(keys[0] + '\n' + keys[1])
+        except:
+            print('')
     if(pick == 6):
-        print(createSignRoot(keys[0]))
+        try:
+            print(createSignRoot(x[2:]))
+        except:
+            print('')
     if(pick == 7):
-        #try:
-            print(VerifySign(keys[1]))
-        #except:
-        #    print('')
-    if(pick == 8):
-        print(leaf_list[-1:])
-    
+        try:
+            print(VerifySign(x[2:]))
+        except:
+            print('')
